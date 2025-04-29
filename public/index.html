@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Processor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Image Processing Tool</h1>
+        </header>
+        
+        <main>
+            <section class="upload-section">
+                <h2>Upload Images</h2>
+                <form id="upload-form" enctype="multipart/form-data">
+                    <div class="file-input-container">
+                        <input type="file" id="images-input" name="images" accept="image/*" multiple required>
+                        <label for="images-input" class="file-label">Choose Images</label>
+                        <span id="files-count">No files chosen</span>
+                    </div>
+                </form>
+                
+                <div id="preview-container" class="preview-container">
+                    <h3>Selected Images</h3>
+                    <div id="preview-grid" class="preview-grid"></div>
+                    <div class="action-buttons">
+                        <button id="process-btn" class="submit-btn" disabled>Process Images</button>
+                        <button id="clear-btn" class="clear-btn" disabled>Clear All</button>
+                    </div>
+                </div>
+
+                <div class="loader" id="loader"></div>
+                <div id="processing-status"></div>
+            </section>
+
+            <section class="results-section" id="results-section">
+                <h2>Processed Images</h2>
+                <div id="results-container">
+                    <!-- Results will be dynamically inserted here -->
+                </div>
+                <div class="download-all-container">
+                    <button id="download-all-btn" class="download-all-btn">Download All (ZIP)</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 
