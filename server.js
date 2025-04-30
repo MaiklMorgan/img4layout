@@ -36,11 +36,42 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message || 'Something went wrong' });
 });
 
+// Helper function to generate a random 5-character hash
+function generateRandomHash() {
+  const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < 5; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
+}
+
+// Helper function to check if output files for a base name already exist
+function outputFilesExist(baseName) {
+  const pngPath = path.join(uploadDir, `${baseName}.png`);
+  const webpPath = path.join(uploadDir, `${baseName}.webp`);
+  const png2xPath = path.join(uploadDir, `${baseName}@2x.png`);
+  const webp2xPath = path.join(uploadDir, `${baseName}@2x.webp`);
+  
+  return fs.existsSync(pngPath) || fs.existsSync(webpPath) || 
+         fs.existsSync(png2xPath) || fs.existsSync(webp2xPath);
+}
+
 // Helper function to process a single image
-async function processImage(filePath, originalName) {
-  // Generate unique ID for the image outputs
-  const uniqueId = Date.now() + '-' + Math.round(Math.random() * 1E9);
-  const baseOutputName = `image-${uniqueId}`;
+async function processImage(filePath, originalName, useHash) {
+  // Extract the base name without extension
+  const fileInfo = path.parse(originalName);
+  const baseName = fileInfo.name;
+  let baseOutputName;
+  
+  if (useHash) {
+    const randomHash = generateRandomHash();
+    baseOutputName = `${baseName}-${randomHash}`;
+    console.log(`Processing ${originalName} -> ${baseOutputName} (with hash)`);
+  } else {
+    baseOutputName = baseName;
+    console.log(`Processing ${originalName} -> ${baseOutputName} (original name)`);
+  }
   
   // Output file paths
   const pngPath = path.join(uploadDir, `${baseOutputName}.png`);
@@ -50,8 +81,7 @@ async function processImage(filePath, originalName) {
 
   // Get metadata for the original image
   const metadata = await sharp(filePath).metadata();
-  console.log(`Processing ${originalName}: ${metadata.width}×${metadata.height}, format: ${metadata.format}`);
-
+  
   // Create all formats one by one
   try {
     // Regular PNG
@@ -113,13 +143,57 @@ app.post('/upload', upload.array('images', 10), async (req, res) => {
 
     console.log(`${req.files.length} file(s) uploaded`);
     
-    // Process all images in parallel
-    const processPromises = req.files.map(file => 
-      processImage(file.path, file.originalname)
-    );
+    // Clear all existing output files
+    console.log("Cleaning previous output files...");
+    fs.readdirSync(uploadDir).forEach(file => {
+      if (file.endsWith('.png') || file.endsWith('.webp')) {
+        try {
+          fs.unlinkSync(path.join(uploadDir, file));
+        } catch (err) {
+          console.error(`Error deleting file ${file}:`, err);
+        }
+      }
+    });
+    
+    // Group files by their base name to identify duplicates
+    const fileGroups = new Map();
+    
+    // Group files by base name
+    req.files.forEach(file => {
+      const baseName = path.parse(file.originalname).name;
+      if (!fileGroups.has(baseName)) {
+        fileGroups.set(baseName, []);
+      }
+      fileGroups.get(baseName).push(file);
+    });
+    
+    // List all groups and their sizes
+    console.log("File groups:");
+    for (const [baseName, files] of fileGroups.entries()) {
+      console.log(`- ${baseName}: ${files.length} file(s)`);
+    }
+    
+    // Process files with the appropriate hash flag
+    const allProcessPromises = [];
+    
+    // Process each group of files
+    for (const [baseName, files] of fileGroups.entries()) {
+      const hasMultipleFiles = files.length > 1;
+      
+      if (hasMultipleFiles) {
+        console.log(`Group ${baseName} has multiple files, adding hashes to all`);
+        for (const file of files) {
+          allProcessPromises.push(processImage(file.path, file.originalname, true));
+        }
+      } else {
+        console.log(`Group ${baseName} has a single file, using original name`);
+        const file = files[0];
+        allProcessPromises.push(processImage(file.path, file.originalname, false));
+      }
+    }
     
     // Wait for all processing to complete
-    const results = await Promise.all(processPromises);
+    const results = await Promise.all(allProcessPromises);
     
     // Delete the original uploaded files
     req.files.forEach(file => {
