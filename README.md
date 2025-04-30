@@ -8,11 +8,31 @@ A Node.js Express application for image processing, running in a Docker containe
 
 - Upload images through a REST API or web interface
 - Process images using the Sharp library:
-  - Minify/compress images
+  - Minify/compress images (output is smaller than input)
   - Convert to PNG and WebP formats
-  - Generate standard and @2x resolution versions
+  - Generate standard (max 1200px width) and @2x resolution versions
+  - Preserve unique filenames, add hash suffixes for duplicates
 - Download processed images directly or serve through API
 - User-friendly web interface for testing and using the tool
+
+## Upload Limitations
+
+- **Maximum file size:** 20MB per image
+- **Maximum files per upload:** 10 images
+- **Supported formats:** JPG, JPEG, PNG, GIF, WebP, AVIF, TIFF, etc.
+
+## Image Processing Details
+
+- **Resolution:**
+  - Standard size: Width limited to 1200px maximum (preserving aspect ratio)
+  - @2x size: Width limited to 2400px maximum (preserving aspect ratio)
+- **Output formats:** 
+  - PNG: High quality (90%) with optimal compression (level 9)
+  - WebP: High quality (90%) with optimal compression
+- **File naming:**
+  - Files with unique names preserve their original base name
+  - Files with duplicate names receive a 5-character random suffix
+- **Compression:** Images are optimized for high quality while still reducing file size
 
 ## Prerequisites
 
@@ -71,10 +91,10 @@ Upload and process one or multiple images.
       {
         "originalName": "photo.jpg",
         "files": {
-          "png": "/images/image-123456789.png",
-          "webp": "/images/image-123456789.webp",
-          "png2x": "/images/image-123456789@2x.png",
-          "webp2x": "/images/image-123456789@2x.webp"
+          "png": "/images/photo.png",
+          "webp": "/images/photo.webp",
+          "png2x": "/images/photo@2x.png",
+          "webp2x": "/images/photo@2x.webp"
         }
       },
       // Additional images...
@@ -90,8 +110,8 @@ Download multiple processed images as a ZIP archive.
   ```json
   {
     "files": [
-      "/images/image-123456789.png",
-      "/images/image-123456789.webp",
+      "/images/photo.png",
+      "/images/photo.webp",
       // Additional files...
     ]
   }
@@ -128,6 +148,13 @@ node test.js upload-multiple /path/to/image1.jpg /path/to/image2.png /path/to/im
 # Download multiple images as a ZIP file (after uploading)
 node test.js download /images/image1.png /images/image2.webp
 ```
+
+## Performance Considerations
+
+- **Large Files:** Very large images (>10MB) will take longer to process
+- **Batch Processing:** Processing many images at once increases memory usage
+- **Server Resources:** For heavy usage, consider adjusting Docker container resources
+- **Temporary Storage:** Processed images are stored temporarily and may be cleared periodically
 
 ## File Structure
 

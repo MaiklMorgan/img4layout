@@ -18,6 +18,13 @@ async function uploadSingleImage(imagePath) {
     }
 
     console.log(`Uploading single image: ${imagePath}`);
+    const fileStats = fs.statSync(imagePath);
+    console.log(`File size: ${(fileStats.size / 1024 / 1024).toFixed(2)} MB`);
+    
+    // Warn if image is very large
+    if (fileStats.size > 10 * 1024 * 1024) {
+      console.warn('Warning: This image is larger than 10MB. It may take longer to process.');
+    }
     
     const formData = new FormData();
     formData.append('images', fs.createReadStream(imagePath));
@@ -37,6 +44,16 @@ async function uploadSingleImage(imagePath) {
     Object.entries(imageData.files).forEach(([format, url]) => {
       console.log(`- ${format}: ${BASE_URL}${url}`);
     });
+    
+    // Log info about file naming
+    const hasHash = Object.values(imageData.files)[0]?.includes('-');
+    if (hasHash) {
+      console.log('\nNote: A hash was added to the filename because:');
+      console.log('- Either there were multiple files with the same base name');
+      console.log('- Or a file with this name was already processed previously');
+    } else {
+      console.log('\nNote: Original filename was preserved (unique name)');
+    }
   } catch (error) {
     console.error('Error uploading image:', error.response?.data || error.message);
   }
@@ -62,7 +79,28 @@ async function uploadMultipleImages(imagePaths) {
       return;
     }
 
+    // Check and warn about total upload size
+    let totalSize = 0;
+    const fileInfo = validPaths.map(path => {
+      const stats = fs.statSync(path);
+      totalSize += stats.size;
+      return {
+        path,
+        size: (stats.size / 1024 / 1024).toFixed(2)
+      };
+    });
+    
     console.log(`Uploading ${validPaths.length} images...`);
+    fileInfo.forEach(file => {
+      console.log(`- ${file.path}: ${file.size} MB`);
+    });
+    
+    console.log(`Total upload size: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
+    
+    if (totalSize > 50 * 1024 * 1024) {
+      console.warn('Warning: Total upload size exceeds 50MB. This may take a while to process.');
+      console.warn('Consider uploading fewer or smaller images at once.');
+    }
     
     const formData = new FormData();
     validPaths.forEach(imagePath => {
@@ -86,6 +124,11 @@ async function uploadMultipleImages(imagePaths) {
         console.log(`- ${format}: ${BASE_URL}${url}`);
       });
     });
+    
+    // Log info about naming convention
+    console.log('\nNote on filenames:');
+    console.log('- Files with unique names in the batch preserve their original names');
+    console.log('- Files with duplicate names in the batch get random 5-character hashes added');
   } catch (error) {
     console.error('Error uploading images:', error.response?.data || error.message);
   }

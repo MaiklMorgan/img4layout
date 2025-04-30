@@ -82,30 +82,44 @@ async function processImage(filePath, originalName, useHash) {
   // Get metadata for the original image
   const metadata = await sharp(filePath).metadata();
   
+  // Calculate dimensions for regular and 2x versions
+  // For regular version, optionally reduce dimensions to optimize
+  const regularWidth = Math.min(metadata.width, 1200); // Limit width to 1200px
+  const regularHeight = Math.round(regularWidth * (metadata.height / metadata.width));
+  
+  // For 2x version, double the regular size but still with reasonable limits
+  const doubleWidth = regularWidth * 2;
+  const doubleHeight = regularHeight * 2;
+  
+  console.log(`Image dimensions: 
+    Original: ${metadata.width}×${metadata.height} 
+    Regular: ${regularWidth}×${regularHeight}
+    Double: ${doubleWidth}×${doubleHeight}`);
+  
   // Create all formats one by one
   try {
-    // Regular PNG
+    // Regular PNG with compression
     await sharp(filePath)
-      .resize(metadata.width, metadata.height)
-      .toFormat('png')
+      .resize(regularWidth, regularHeight)
+      .png({ compressionLevel: 9, adaptiveFiltering: true, quality: 90 })
       .toFile(pngPath);
     
-    // WebP version
+    // WebP version with better compression
     await sharp(filePath)
-      .resize(metadata.width, metadata.height)
-      .toFormat('webp', { quality: 80 })
+      .resize(regularWidth, regularHeight)
+      .webp({ quality: 90, lossless: false })
       .toFile(webpPath);
     
-    // PNG @2x version
+    // PNG @2x version with compression
     await sharp(filePath)
-      .resize(metadata.width * 2, metadata.height * 2)
-      .toFormat('png')
+      .resize(doubleWidth, doubleHeight)
+      .png({ compressionLevel: 9, adaptiveFiltering: true, quality: 90 })
       .toFile(png2xPath);
     
-    // WebP @2x version
+    // WebP @2x version with better compression
     await sharp(filePath)
-      .resize(metadata.width * 2, metadata.height * 2)
-      .toFormat('webp', { quality: 80 })
+      .resize(doubleWidth, doubleHeight)
+      .webp({ quality: 90, lossless: false })
       .toFile(webp2xPath);
 
     // Verify all files exist and have content
@@ -115,6 +129,16 @@ async function processImage(filePath, originalName, useHash) {
       png2x: fs.existsSync(png2xPath) && fs.statSync(png2xPath).size > 0,
       webp2x: fs.existsSync(webp2xPath) && fs.statSync(webp2xPath).size > 0
     };
+    
+    // Show file sizes
+    if (fileStatus.png) {
+      console.log(`File sizes:
+        Original: ${Math.round(fs.statSync(filePath).size / 1024)}KB
+        PNG: ${Math.round(fs.statSync(pngPath).size / 1024)}KB
+        WebP: ${Math.round(fs.statSync(webpPath).size / 1024)}KB
+        PNG@2x: ${Math.round(fs.statSync(png2xPath).size / 1024)}KB
+        WebP@2x: ${Math.round(fs.statSync(webp2xPath).size / 1024)}KB`);
+    }
     
     // Return only paths to files that were successfully created
     const result = {

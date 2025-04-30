@@ -15,6 +15,26 @@
         <main>
             <section class="upload-section">
                 <h2>Upload Images</h2>
+                <div class="limits-info">
+                    <div class="info-box">
+                        <h4>Upload Limits</h4>
+                        <ul>
+                            <li><strong>Max file size:</strong> 20MB per image</li>
+                            <li><strong>Max files:</strong> 10 images per upload</li>
+                            <li><strong>Supported formats:</strong> JPG, JPEG, PNG, GIF, WebP, etc.</li>
+                        </ul>
+                    </div>
+                    <div class="info-box">
+                        <h4>Processing Info</h4>
+                        <ul>
+                            <li>Images are resized with max width of 1200px (standard) and 2400px (@2x)</li>
+                            <li>Output formats: High-quality PNG (90%) and WebP (90% quality)</li>
+                            <li>Files with unique names maintain original filename</li>
+                            <li>Files with duplicate names receive a random hash suffix</li>
+                        </ul>
+                    </div>
+                </div>
+                
                 <form id="upload-form" enctype="multipart/form-data">
                     <div class="file-input-container">
                         <input type="file" id="images-input" name="images" accept="image/*" multiple required>
@@ -46,6 +66,10 @@
                 </div>
             </section>
         </main>
+        
+        <footer>
+            <p>Image Processing Tool • Files are optimized for web use • Temporary storage only</p>
+        </footer>
     </div>
 
     <script src="script.js"></script>
