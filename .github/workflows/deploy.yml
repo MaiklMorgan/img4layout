@@ -41,9 +41,5 @@ jobs:
       - name: Install production dependencies and restart service
         run: |
           ssh -i ~/.ssh/id_rsa -p ${{ secrets.HETZNER_SSH_PORT }} -o StrictHostKeyChecking=no \
-            ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }} <<'EOF'
-          set -euo pipefail
-          cd /var/www/img4layout.com/app
-          npm install --production
-          systemctl restart img4layout
-          EOF
+            ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }} \
+            "set -euo pipefail && cd /var/www/img4layout.com/app && npm install --production && systemctl restart img4layout"
